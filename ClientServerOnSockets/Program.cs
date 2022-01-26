@@ -44,18 +44,24 @@ try
         // Show the data on the console.  
         Console.WriteLine("Text received : {0}", data);
 
-        var header = "HTTP/1.1 200 OK\r\n\r\n";
-        var content = 
-            @"<html>
-               <body>
-                 <h1> Hello, World!</h1>
-               </body>
-            </html>" + "\r\n\r\n";
+        var statusLine = "HTTP/1.1 200 OK\r\n";
+        var headers = @"Content-Type: application/json
+Authorization: Bearer afds54a56sd4f6a5s4df654asf
+My-Custom-Header: Hello World!
+";
+        //var content = 
+        //    @"<html>
+        //       <body>
+        //         <h1> Hello, World!</h1>
+        //       </body>
+        //    </html>" + "\r\n\r\n";
 
         // Echo the data back to the client.  
         byte[] msg = Encoding.ASCII.GetBytes(data);
 
-        handler.Send(Encoding.ASCII.GetBytes(header + content));
+        handler.Send(Encoding.ASCII.GetBytes(statusLine + headers + "\r\n"));
+        handler.SendFile("61b2e000e0ae4.jpg");
+        handler.Send(Encoding.ASCII.GetBytes("\r\n\r\n"));
         handler.Shutdown(SocketShutdown.Both);
         handler.Close();
     }
