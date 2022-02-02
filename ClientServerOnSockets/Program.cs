@@ -1,7 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
+using ClientServerOnSockets.Attributes;
 
 string data = null;
 // Data buffer for incoming data.  
@@ -34,7 +37,7 @@ try
         while (true)
         {
             int bytesRec = handler.Receive(bytes);
-            data += Encoding.ASCII.GetString(bytes, 0, bytesRec); 
+            data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
             if (data.EndsWith("\r\n\r\n"))
             {
                 break;
@@ -42,25 +45,63 @@ try
         }
 
         // Show the data on the console.  
-        Console.WriteLine("Text received : {0}", data);
+        Console.WriteLine("Text received :");
+        Console.WriteLine(data);
+
+        var path = data.Split("r\n")[0].Split(" ")[1];
+
+        object myVar = path;
+
+
 
         var statusLine = "HTTP/1.1 200 OK\r\n";
-        var headers = @"Content-Type: application/json
+        var headers = @"Content-Type: text/html
 Authorization: Bearer afds54a56sd4f6a5s4df654asf
 My-Custom-Header: Hello World!
 ";
-        //var content = 
-        //    @"<html>
-        //       <body>
-        //         <h1> Hello, World!</h1>
-        //       </body>
-        //    </html>" + "\r\n\r\n";
 
-        // Echo the data back to the client.  
-        byte[] msg = Encoding.ASCII.GetBytes(data);
+        var controllers = Assembly.GetExecutingAssembly().DefinedTypes
+            .Where(t => t.CustomAttributes.Any((CustomAttributeData attr) => attr.AttributeType == typeof(ControllerAttribute)));
+
+        Type controllerType = null;
+        MethodInfo controllerMethod = null;
+
+        foreach (var c in controllers)
+        {
+            foreach (var m in c.GetMethods()) 
+            {
+                var routeAttr = m.GetCustomAttribute<RouteAttribute>();
+                if (routeAttr != null && routeAttr.Path == path)
+                {
+                    controllerType = c;
+                    controllerMethod = m;
+                    break;
+                }
+
+            } 
+
+        }
+
+        byte[] msg = Encoding.ASCII.GetBytes("");
+        if (controllerType == null || controllerMethod == null)
+        {
+            statusLine = "HTTP/1.1 404 Not Found\r\n";
+        }
+        else
+        {
+            //var controller = new MyController();
+            var controller = Activator.CreateInstance(controllerType);
+
+            byte[] result = (byte[])(controllerMethod.Invoke(controller, new object[] { }));
+
+            msg = result;
+        }
+
+        //byte[] msg = Encoding.ASCII.GetBytes(data);
 
         handler.Send(Encoding.ASCII.GetBytes(statusLine + headers + "\r\n"));
-        handler.SendFile("61b2e000e0ae4.jpg");
+        handler.Send(msg);
+        //handler.SendFile("61b2e000e0ae4.jpg");
         handler.Send(Encoding.ASCII.GetBytes("\r\n\r\n"));
         handler.Shutdown(SocketShutdown.Both);
         handler.Close();
