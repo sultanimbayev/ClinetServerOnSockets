@@ -38,7 +38,7 @@ try
         {
             int bytesRec = handler.Receive(bytes);
             data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
-            if (data.EndsWith("\r\n\r\n"))
+            if (data.EndsWith("\r\n\r\n") || bytesRec == 0)
             {
                 break;
             }
@@ -55,6 +55,7 @@ try
 
 
         var statusLine = "HTTP/1.1 200 OK\r\n";
+        var isOk = true;
         var headers = @"Content-Type: text/html
 Authorization: Bearer afds54a56sd4f6a5s4df654asf
 My-Custom-Header: Hello World!
@@ -86,6 +87,7 @@ My-Custom-Header: Hello World!
         if (controllerType == null || controllerMethod == null)
         {
             statusLine = "HTTP/1.1 404 Not Found\r\n";
+            isOk = false;
         }
         else
         {
