@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="61b2e000e0ae4.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

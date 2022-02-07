@@ -1,4 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -47,7 +49,21 @@ try
         Console.WriteLine("Text received : {0}", data);
 
 
-        var path = data.Split("r\n")[0].Split(" ")[1];
+        var path = data.Split("\r\n")[0].Split(" ")[1];
+        var headersValues = data.Split("\r\n").Skip(1).Where(line => line.Contains(":")).Select(line =>
+        {
+            var headerKey = line.Split(": ")[0];
+            var headerValues = line.Split(": ")[1].Split(",");
+            return new KeyValuePair<string, string[]>(headerKey, headerValues);
+        });
+        var headers = new Dictionary<string, string[]>(headersValues);
+
+        var auth = "";
+        if (headers.ContainsKey("Authorization"))
+        {
+            auth = headers["Authorization"][0];
+        }
+
         byte[] responseData;
 
 //        var headers = @"Authorization: Bearer afds54a56sd4f6a5s4df654asf
@@ -59,6 +75,10 @@ try
         if (path == "/")
         {
             path = "/index.html";
+        }
+        if(path == "/admin")
+        {
+
         }
 
         var filePath = Path.Combine(rootFolder, path.Substring(1));
