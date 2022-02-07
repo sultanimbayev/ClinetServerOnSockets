@@ -7,6 +7,8 @@ string data = null;
 // Data buffer for incoming data.  
 byte[] bytes = new Byte[1024];
 
+string rootFolder = "C:\\www";
+
 // Establish the local endpoint for the socket.  
 // Dns.GetHostName returns the name of the
 // host running the application.  
@@ -35,7 +37,7 @@ try
         {
             int bytesRec = handler.Receive(bytes);
             data += Encoding.ASCII.GetString(bytes, 0, bytesRec); 
-            if (data.EndsWith("\r\n\r\n"))
+            if (data.EndsWith("\r\n\r\n") || bytesRec == 0)
             {
                 break;
             }
@@ -44,23 +46,36 @@ try
         // Show the data on the console.  
         Console.WriteLine("Text received : {0}", data);
 
+
+        var path = data.Split("r\n")[0].Split(" ")[1];
+        byte[] responseData;
+
+//        var headers = @"Authorization: Bearer afds54a56sd4f6a5s4df654asf
+//My-Custom-Header: Hello World!
+//";
+
         var statusLine = "HTTP/1.1 200 OK\r\n";
-        var headers = @"Content-Type: application/json
-Authorization: Bearer afds54a56sd4f6a5s4df654asf
-My-Custom-Header: Hello World!
-";
-        //var content = 
-        //    @"<html>
-        //       <body>
-        //         <h1> Hello, World!</h1>
-        //       </body>
-        //    </html>" + "\r\n\r\n";
 
-        // Echo the data back to the client.  
-        byte[] msg = Encoding.ASCII.GetBytes(data);
+        if (path == "/")
+        {
+            path = "/index.html";
+        }
 
-        handler.Send(Encoding.ASCII.GetBytes(statusLine + headers + "\r\n"));
-        handler.SendFile("61b2e000e0ae4.jpg");
+        var filePath = Path.Combine(rootFolder, path.Substring(1));
+
+        if (File.Exists(filePath))
+        {
+            responseData = File.ReadAllBytes(filePath);
+        }
+        else
+        {
+            responseData = new byte[0];
+            statusLine = "HTTP/1.1 404 Not Found\r\n";
+        }
+
+
+        handler.Send(Encoding.ASCII.GetBytes(statusLine /*+ headers*/ + "\r\n"));
+        handler.Send(responseData);
         handler.Send(Encoding.ASCII.GetBytes("\r\n\r\n"));
         handler.Shutdown(SocketShutdown.Both);
         handler.Close();
