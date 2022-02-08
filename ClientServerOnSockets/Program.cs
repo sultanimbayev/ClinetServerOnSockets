@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -33,6 +34,7 @@ try
         // Program is suspended while waiting for an incoming connection.  
         Socket handler = listener.Accept();
         data = null;
+        var resourceAllowed = true;
 
         // An incoming connection needs to be processed.  
         while (true)
@@ -64,30 +66,50 @@ try
             auth = headers["Authorization"][0];
         }
 
-        byte[] responseData;
+        byte[] responseData = new byte[0];
 
 //        var headers = @"Authorization: Bearer afds54a56sd4f6a5s4df654asf
 //My-Custom-Header: Hello World!
 //";
 
         var statusLine = "HTTP/1.1 200 OK\r\n";
+        var filePath = rootFolder;
 
         if (path == "/")
         {
             path = "/index.html";
         }
-        if(path == "/admin")
-        {
 
+        if(path.StartsWith("/admin"))
+        {
+            var authHeaderData = auth.Split(" ");
+            if (string.IsNullOrEmpty(auth) || authHeaderData.Length < 2)
+            {
+
+                responseData = new byte[0];
+                statusLine = "HTTP/1.1 401 Unauthorized\r\n";
+                resourceAllowed = false;
+            }
+            else if (Encoding.UTF8.GetString(Convert.FromBase64String(authHeaderData[1])) != "hello:world")
+            {
+                responseData = new byte[0];
+                statusLine = "HTTP/1.1 401 Unauthorized\r\n";
+                resourceAllowed = false;
+            }
+            else
+            {
+                path = "/admin.html";
+            }
         }
 
-        var filePath = Path.Combine(rootFolder, path.Substring(1));
+        filePath = Path.Combine(rootFolder, path.Substring(1));
 
-        if (File.Exists(filePath))
+        if (File.Exists(filePath) && resourceAllowed)
         {
             responseData = File.ReadAllBytes(filePath);
         }
-        else
+
+        if (!File.Exists(filePath) && resourceAllowed)
         {
             responseData = new byte[0];
             statusLine = "HTTP/1.1 404 Not Found\r\n";
