@@ -16,12 +16,12 @@ namespace ClientServerOnSockets
         // Dns.GetHostName returns the name of the
         // host running the application.  
         //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-        private Socket Listener;
+        private Socket? Listener;
         private bool _started = false;
 
         public void Dispose()
         {
-            Listener.Dispose();
+            Listener?.Dispose();
         }
 
         public async void Start(int port, int backlog = 10)
@@ -39,16 +39,20 @@ namespace ClientServerOnSockets
                 var socket = Listener.Accept();
                 if (socket != null)
                 {
-                    _ = await HandleRequest(socket);
+                    await HandleRequest(socket);
                 }
             }
         }
 
-        public async Task<RequestHandler> HandleRequest(Socket socket)
+        public async Task HandleRequest(Socket socket)
         {
             var requestHandler = new RequestHandler();
-            await requestHandler.HandleRequest(new NetworkStream(socket));
-            return requestHandler;
+
+            var stream = new BufferedStream(new NetworkStream(socket));
+            var request = await requestHandler.HttpRequestFrom(stream);
+            var responseBuilder = new FileServerResponseBuilder();
+            var response = await responseBuilder.BuildResponseAsync(request);
+            await requestHandler.SendResponse(stream, response);
         }
 
         public void Stop()

@@ -8,11 +8,27 @@ namespace ClientServerOnSockets
 {
     internal class RequestHandler
     {
-        public async Task HandleRequest(Stream requestStream)
-        {
 
-            var stream = new BufferedStream(requestStream);
-            var httpReq = await HttpRequestFrom(stream);
+        public async Task SendResponse(Stream responseStream, HttpResponse response)
+        {
+            var writer = new StreamWriter(responseStream);
+            await writer.WriteLineAsync(response.StatusLine);
+            if(response.Headers != null)
+            {
+                foreach(var header in response.Headers)
+                {
+                    var headerLine = $"{header.Key}: ";
+                    headerLine += String.Join(",", header.Value);
+                    await writer.WriteLineAsync(headerLine);
+                }
+            }
+            writer.WriteLine();
+
+            if(response.Body != null && response.Body.CanRead)
+            {
+                await response.Body.CopyToAsync(responseStream);
+            }
+            await writer.WriteLineAsync();
         }
 
         public async Task<HttpRequest> HttpRequestFrom(Stream stream)
